@@ -1,5 +1,5 @@
 # Clean Wordle Game
-### malesef oyun şuan oynanmaya hazır değil ❤️
+### <a href="https://mertcanoncul.akademiprojeler.live/wordlegame/">live</a>
 ## Game Photo
 <img src="public/game.png">
 
