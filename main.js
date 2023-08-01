@@ -8,21 +8,22 @@ const targetWords = targetWordsMocks;
 
 const guessGrid = document.querySelector('[data-guess-grid]');
 const alertContainer = document.querySelector('[data-alert-container]');
-const targetWord = targetWords[Math.floor(Math.random() * 85)].toLocaleLowerCase('tr');
+const keyboardContainer = document.querySelector('[data-keyboard]');
+const targetWord = targetWords[Math.floor(Math.random() * 80)].toLocaleLowerCase('tr');
 
 // trick :/
 console.log(targetWord);
 
 // play game
-play();
+playGame();
 
-function play() {
+function playGame() {
   document.addEventListener('click', handleMouseClick);
   document.addEventListener('keydown', handleKeyPress);
 }
 
 // stop game
-function stopPlay() {
+function stopGame() {
   document.removeEventListener('click', handleMouseClick);
   document.removeEventListener('keydown', handleKeyPress);
 }
@@ -47,7 +48,6 @@ function handleMouseClick(e) {
 
 // keydown
 function handleKeyPress(e) {
-  console.log(e.key);
   if (e.key === "Enter") {
     submitGuess();
     return;
@@ -58,7 +58,7 @@ function handleKeyPress(e) {
     return;
   }
 
-  if (e.key.match(/^[a-zA-Z]$/)) {
+  if (e.key.match(/^[a-zığüşöçA-ZİĞÜŞÖÇ]$/)) {
     pressKey(e.key);
     return;
   }
@@ -68,9 +68,9 @@ function handleKeyPress(e) {
 function pressKey(key) {
   const activeTiles = getActiveTiles();
   if (activeTiles.length >= 5) { return; }
-  const nextTile = guessGrid.querySelector(':not([data-letter])');
+  const nextTile = guessGrid.querySelector(":not([data-letter])");
   nextTile.dataset.letter = key.toLocaleLowerCase('tr');
-  nextTile.innerHTML = key;
+  nextTile.innerText = key;
   nextTile.dataset.state = "active";
 }
 
@@ -81,7 +81,7 @@ function deleteKey() {
   const lastTile = activeTiles[activeTiles.length - 1];
   if (lastTile === undefined) { return; }
   // delete last tile
-  lastTile.innerHTML = "";
+  lastTile.innerText = "";
   delete lastTile.dataset.state
   delete lastTile.dataset.letter
 }
@@ -102,15 +102,68 @@ function submitGuess() {
   const guess = activeTiles.reduce((word,tile) => {
     return word + tile.dataset.letter;
   }, "");
-  console.log(guess);
 
-  // guess is wrong
+  // guess is not have list
   if (!dictionary.includes(guess.toLocaleUpperCase('tr'))) {
     showAlert(`Tahmin ettiğin kelime listede yok: '${guess}'`);
     shakeTiles(activeTiles);
     return;
   }
 
+  // guess is have list and is enough letter
+  activeTiles.forEach((tile, index, array) => flipTile(tile, index, array, guess));
+}
+
+// flip tile
+function flipTile(tile, index, array, guess) {
+  const letter = tile.dataset.letter;
+
+  // turkish char fix
+  const key = keyboardContainer.querySelector(`[data-key="${letter.toLocaleUpperCase('tr')}"]`);
+
+  setTimeout(() => {
+    tile.classList.add("flip");
+  }, (index * 500) / 2);
+
+  tile.addEventListener('animationend', () => {
+    // animation remove
+    tile.classList.remove("flip");
+    
+    // targetWord action
+    if (targetWord[index] === letter) {
+      tile.dataset.state = "correct";
+      key.classList.add("correct"); 
+    } else if(targetWord.includes(letter)) {
+      tile.dataset.state = "wrong-location";
+      key.classList.add("wrong-location");
+    } else {
+      tile.dataset.state = "wrong";
+      key.classList.add("wrong");
+    }
+
+    if (index === array.length - 1) {
+      tile.addEventListener('animationend', () => {
+        playGame();
+        checkWinLose(guess, array);
+      }, { once: true })
+    }
+  }, { once: true })
+}
+
+function checkWinLose(guess, tiles) {
+  if (guess === targetWord) {
+    showAlert(`Tebrikler Kazandın 🎉 tahmin: "${guess}"`, 5000);
+    danceTiles(tiles);
+    stopGame();
+    return;
+  }
+
+  const remainingTiles = guessGrid.querySelectorAll(':not([data-letter])');
+
+  if (remainingTiles.length === 0) {
+    showAlert(`Kaybetiniz kelime: ${targetWord.toLocaleUpperCase('tr')}`, null) 
+    stopGame();
+  }
 }
 
 // get has data-state="active" tiles
@@ -142,5 +195,16 @@ function shakeTiles(tiles) {
     tile.addEventListener('animationend', () => {
       tile.classList.remove("shake")
     }, { once: true })
+  });
+}
+
+function danceTiles(tiles) {
+  tiles.forEach((tile, index) => {
+    setTimeout(() => {      
+    tile.classList.add("dance");
+    tile.addEventListener('animationend', () => {
+      tile.classList.remove("dance")
+    }, { once: true })
+  }, index * 500 / 5);
   });
 }
